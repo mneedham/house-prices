@@ -5,6 +5,8 @@ from sklearn import linear_model
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 
+from tabulate import tabulate
+
 sns.set(style="whitegrid", color_codes=True)
 sns.set(font_scale=1)
 
@@ -60,8 +62,9 @@ def create_model(train):
 
 
 def test_model(model, X_test, y_test):
-    print("R^2 is: \n", model.score(X_test, y_test))
-    print('RMSE is: \n', mean_squared_error(y_test, model.predict(X_test)))
+    # print("R^2 is: \n", model.score(X_test, y_test))
+    # print('RMSE is: \n', mean_squared_error(y_test, model.predict(X_test)))
+    return model.score(X_test, y_test), mean_squared_error(y_test, model.predict(X_test))
 
 
 def enc_condition(x): return 1 if x == 'Partial' else 0
@@ -83,32 +86,33 @@ def add_features(data):
     return new_data
 
 if __name__ == '__main__':
-    print("Before cleaning:")
-    model, X_test, y_test = create_model(train)
-    test_model(model, X_test, y_test)
+    headers = ["type", "R squared", "RMSE"]
+    table = []
 
-    print("After cleaning:")
+    model, X_test, y_test = create_model(train)
+    table.append(["Before cleaning"] + list(test_model(model, X_test, y_test)))
+
     cleaned_train = clean_nulls(train)
     model, X_test, y_test = create_model(cleaned_train)
-    test_model(model, X_test, y_test)
+    table.append(["After cleaning"] + list(test_model(model, X_test, y_test)))
 
-    print("Extra features:")
     train_extra_features = add_features(train)
     model, X_test, y_test = create_model(train_extra_features)
-    test_model(model, X_test, y_test)
+    table.append(["Extra features"] + list(test_model(model, X_test, y_test)))
 
-    print("Extra features after cleaning:")
     cleaned_train_extra_features = clean_nulls(train_extra_features)
     model, X_test, y_test = create_model(cleaned_train_extra_features)
-    test_model(model, X_test, y_test)
+    table.append(["Extra features after cleaning:"] + list(test_model(model, X_test, y_test)))
 
-    cleaned_test_extra_features = clean_nulls(add_features(test))
+    print(tabulate(table, headers, tablefmt="plain"))
 
-    submission = pd.DataFrame()
-    submission['Id'] = cleaned_test_extra_features.Id
-
-    feats = cleaned_test_extra_features.select_dtypes(include=[np.number]).drop(['Id'], axis=1).interpolate()
-    predictions = model.predict(feats)
-    final_predictions = np.exp(predictions)
-    submission['SalePrice'] = final_predictions
-    submission.to_csv('submission-extra-features-no-nas.csv', index=False)
+    # cleaned_test_extra_features = clean_nulls(add_features(test))
+    #
+    # submission = pd.DataFrame()
+    # submission['Id'] = cleaned_test_extra_features.Id
+    #
+    # feats = cleaned_test_extra_features.select_dtypes(include=[np.number]).drop(['Id'], axis=1).interpolate()
+    # predictions = model.predict(feats)
+    # final_predictions = np.exp(predictions)
+    # submission['SalePrice'] = final_predictions
+    # submission.to_csv('submission-extra-features-no-nas.csv', index=False)
