@@ -13,6 +13,34 @@ sns.set(font_scale=1)
 test = pd.read_csv('test.csv')
 train = pd.read_csv('train.csv')
 
+areas = {
+    "Blmngtn": {"zipCode": "IA 50010"},
+    "Blueste": {"zipCode": "IA 50014"},
+    "BrDale": {"zipCode": "IA 50010"},
+    "BrkSide": {"zipCode": "IA 50010"},
+    "ClearCr": {"zipCode": "IA 50014"},
+    "CollgCr": {"zipCode": "IA 50014"},
+    "Crawfor": {"zipCode": "IA 50014"},
+    "Edwards": {"zipCode": "IA 50014"},
+    "Gilbert": {"zipCode": "IA 50105"},
+    "IDOTRR": {"zipCode": "IA 50010"},
+    "MeadowV": {"zipCode": "IA 50010"},
+    "Mitchel": {"zipCode": "IA 50010"},
+    "Names": {"zipCode": "IA 50011"},
+    "NoRidge": {"zipCode": "IA 50010"},
+    "NPkVill": {"zipCode": "IA 50010"},
+    "NridgHt": {"zipCode": "IA 50010"},
+    "NWAmes": {"zipCode": "IA 50010"},
+    "OldTown": {"zipCode": "IA 50010"},
+    "SWISU": {"zipCode": "IA 50011"},
+    "Sawyer": {"zipCode": "IA 50014"},
+    "SawyerW": {"zipCode": "IA 50014"},
+    "Somerset": {"zipCode": "IA 50010"},
+    "StoneBr": {"zipCode": "IA 50010"},
+    "Timber": {"zipCode": "IA 50014"},
+    "Veenker": {"zipCode": "IA 50011"},
+}
+
 
 def find_nulls(df):
     null_columns = df.columns[df.isnull().any()]
@@ -58,7 +86,7 @@ def create_model(train):
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42, test_size=.33)
     lr = linear_model.LinearRegression()
     model = lr.fit(X_train, y_train)
-    return (model, X_test, y_test)
+    return model, X_test, y_test
 
 
 def test_model(model, X_test, y_test):
@@ -76,6 +104,21 @@ def foundation(x): return 1 if x == 'PConc' else 0
 def misc_feature(x): return 1 if x == 'TenC' else 0
 
 
+def fireplace(x): return 1 if x == "Ex" else 0
+
+
+def exterior(x):
+    if x == "Ex":
+        return 5
+    elif x == "Gd":
+        return 4
+    elif x == "TA":
+        return 3
+    elif x == "Fa":
+        return 2
+    else:
+        return 1
+
 def add_features(data):
     new_data = data.copy()
     new_data['enc_street'] = pd.get_dummies(new_data.Street, drop_first=True)
@@ -83,6 +126,8 @@ def add_features(data):
     new_data['enc_foundation'] = new_data.Foundation.apply(foundation)
     new_data['enc_misc_feature'] = new_data.MiscFeature.apply(misc_feature)
     new_data['enc_central_air'] = pd.get_dummies(new_data.CentralAir, drop_first=True)
+    new_data['enc_fireplace'] = new_data.FireplaceQu.apply(misc_feature)
+    new_data['enc_exterior'] = new_data.ExterCond.apply(exterior)
     return new_data
 
 if __name__ == '__main__':
