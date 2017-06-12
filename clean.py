@@ -7,6 +7,8 @@ from sklearn.model_selection import train_test_split
 
 from tabulate import tabulate
 
+from sklearn.ensemble import RandomForestRegressor
+
 sns.set(style="whitegrid", color_codes=True)
 sns.set(font_scale=1)
 
@@ -89,6 +91,16 @@ def create_model(train):
     return model, X_test, y_test
 
 
+def create_random_forest_model(train):
+    data = train.select_dtypes(include=[np.number]).interpolate().dropna()
+    y = np.log(train.SalePrice)
+    X = data.drop(["SalePrice", "Id"], axis=1)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42, test_size=.33)
+    clf = RandomForestRegressor(n_jobs=2, n_estimators=1000)
+    model = clf.fit(X_train, y_train)
+    return model, X_test, y_test
+
+
 def test_model(model, X_test, y_test):
     # print("R^2 is: \n", model.score(X_test, y_test))
     # print('RMSE is: \n', mean_squared_error(y_test, model.predict(X_test)))
@@ -119,6 +131,7 @@ def exterior(x):
     else:
         return 1
 
+
 def add_features(data):
     new_data = data.copy()
     new_data['enc_street'] = pd.get_dummies(new_data.Street, drop_first=True)
@@ -129,6 +142,10 @@ def add_features(data):
     new_data['enc_fireplace'] = new_data.FireplaceQu.apply(misc_feature)
     new_data['enc_exterior'] = new_data.ExterCond.apply(exterior)
     return new_data
+
+
+
+
 
 if __name__ == '__main__':
     headers = ["type", "R squared", "RMSE"]
@@ -148,6 +165,9 @@ if __name__ == '__main__':
     cleaned_train_extra_features = clean_nulls(train_extra_features)
     model, X_test, y_test = create_model(cleaned_train_extra_features)
     table.append(["Extra features after cleaning:"] + list(test_model(model, X_test, y_test)))
+
+    model, X_test, y_test = create_random_forest_model(cleaned_train)
+    table.append(["Random forest"] + list(test_model(model, X_test, y_test)))
 
     print(tabulate(table, headers, tablefmt="plain"))
 
