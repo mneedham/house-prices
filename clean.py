@@ -144,40 +144,52 @@ def add_features(data):
     return new_data
 
 
-
-
+def generate_predictions(test, model):
+    submission = pd.DataFrame()
+    submission['Id'] = test.Id
+    feats = test.select_dtypes(include=[np.number]).drop(['Id'], axis=1).interpolate()
+    predictions = model.predict(feats)
+    final_predictions = np.exp(predictions)
+    submission['SalePrice'] = final_predictions
+    return submission
 
 if __name__ == '__main__':
     headers = ["type", "R squared", "RMSE"]
     table = []
 
-    model, X_test, y_test = create_model(train)
-    table.append(["Before cleaning"] + list(test_model(model, X_test, y_test)))
-
     cleaned_train = clean_nulls(train)
-    model, X_test, y_test = create_model(cleaned_train)
-    table.append(["After cleaning"] + list(test_model(model, X_test, y_test)))
-
     train_extra_features = add_features(train)
-    model, X_test, y_test = create_model(train_extra_features)
-    table.append(["Extra features"] + list(test_model(model, X_test, y_test)))
-
     cleaned_train_extra_features = clean_nulls(train_extra_features)
+
+    model, X_test, y_test = create_model(train)
+    table.append(["Linear: Before cleaning"] + list(test_model(model, X_test, y_test)))
+
+    model, X_test, y_test = create_model(cleaned_train)
+    table.append(["Linear: After cleaning"] + list(test_model(model, X_test, y_test)))
+
+    model, X_test, y_test = create_model(train_extra_features)
+    table.append(["Linear: Extra features"] + list(test_model(model, X_test, y_test)))
+
     model, X_test, y_test = create_model(cleaned_train_extra_features)
-    table.append(["Extra features after cleaning:"] + list(test_model(model, X_test, y_test)))
+    table.append(["Linear: Extra features after cleaning"] + list(test_model(model, X_test, y_test)))
+
+    model, X_test, y_test = create_random_forest_model(train)
+    table.append(["RF: Before cleaning"] + list(test_model(model, X_test, y_test)))
 
     model, X_test, y_test = create_random_forest_model(cleaned_train)
-    table.append(["Random forest"] + list(test_model(model, X_test, y_test)))
+    table.append(["RF: After cleaning"] + list(test_model(model, X_test, y_test)))
+
+    model, X_test, y_test = create_random_forest_model(train_extra_features)
+    table.append(["RF: Extra features"] + list(test_model(model, X_test, y_test)))
+
+    name = "RF: Extra features after cleaning"
+    model, X_test, y_test = create_random_forest_model(cleaned_train_extra_features)
+    table.append([name] + list(test_model(model, X_test, y_test)))
+    friendly_file_name = name.lower().replace(" ", "-").replace(":", "")
+    # 0.15151 - think this one is too overfitted
 
     print(tabulate(table, headers, tablefmt="plain"))
 
-    # cleaned_test_extra_features = clean_nulls(add_features(test))
-    #
-    # submission = pd.DataFrame()
-    # submission['Id'] = cleaned_test_extra_features.Id
-    #
-    # feats = cleaned_test_extra_features.select_dtypes(include=[np.number]).drop(['Id'], axis=1).interpolate()
-    # predictions = model.predict(feats)
-    # final_predictions = np.exp(predictions)
-    # submission['SalePrice'] = final_predictions
-    # submission.to_csv('submission-extra-features-no-nas.csv', index=False)
+    test_features = clean_nulls(add_features(test))
+    submission = generate_predictions(test_features, model)
+    submission.to_csv(friendly_file_name, index=False)
