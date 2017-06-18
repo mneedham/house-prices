@@ -1,16 +1,12 @@
-import pandas as pd
-import seaborn as sns
 import numpy as np
+import pandas as pd
 from sklearn import linear_model
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
-
 from tabulate import tabulate
 
-from sklearn.ensemble import RandomForestRegressor
-
-sns.set(style="whitegrid", color_codes=True)
-sns.set(font_scale=1)
+from lib import features
 
 test = pd.read_csv('test.csv')
 train = pd.read_csv('train.csv')
@@ -107,43 +103,6 @@ def test_model(model, X_test, y_test):
     return model.score(X_test, y_test), mean_squared_error(y_test, model.predict(X_test))
 
 
-def enc_condition(x): return 1 if x == 'Partial' else 0
-
-
-def foundation(x): return 1 if x == 'PConc' else 0
-
-
-def misc_feature(x): return 1 if x == 'TenC' else 0
-
-
-def fireplace(x): return 1 if x == "Ex" else 0
-
-
-def exterior(x):
-    if x == "Ex":
-        return 5
-    elif x == "Gd":
-        return 4
-    elif x == "TA":
-        return 3
-    elif x == "Fa":
-        return 2
-    else:
-        return 1
-
-
-def add_features(data):
-    new_data = data.copy()
-    new_data['enc_street'] = pd.get_dummies(new_data.Street, drop_first=True)
-    new_data['enc_condition'] = new_data.SaleCondition.apply(enc_condition)
-    new_data['enc_foundation'] = new_data.Foundation.apply(foundation)
-    new_data['enc_misc_feature'] = new_data.MiscFeature.apply(misc_feature)
-    new_data['enc_central_air'] = pd.get_dummies(new_data.CentralAir, drop_first=True)
-    new_data['enc_fireplace'] = new_data.FireplaceQu.apply(misc_feature)
-    new_data['enc_exterior'] = new_data.ExterCond.apply(exterior)
-    return new_data
-
-
 def generate_predictions(test, model):
     submission = pd.DataFrame()
     submission['Id'] = test.Id
@@ -158,7 +117,7 @@ if __name__ == '__main__':
     table = []
 
     cleaned_train = clean_nulls(train)
-    train_extra_features = add_features(train)
+    train_extra_features = features.add_features(train)
     cleaned_train_extra_features = clean_nulls(train_extra_features)
 
     model, X_test, y_test = create_model(train)
@@ -186,10 +145,10 @@ if __name__ == '__main__':
     model, X_test, y_test = create_random_forest_model(cleaned_train_extra_features)
     table.append([name] + list(test_model(model, X_test, y_test)))
     friendly_file_name = name.lower().replace(" ", "-").replace(":", "")
-    # 0.15151 - think this one is too overfitted
+    # 0.15151 - think this one is overfitted
 
     print(tabulate(table, headers, tablefmt="plain"))
 
-    test_features = clean_nulls(add_features(test))
+    test_features = clean_nulls(features.add_features(test))
     submission = generate_predictions(test_features, model)
     submission.to_csv(friendly_file_name, index=False)
